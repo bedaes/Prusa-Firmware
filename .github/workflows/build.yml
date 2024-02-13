@@ -59,7 +59,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_TOOLCHAIN_FILE="../cmake/AvrGcc.cmake" -DCMAKE_BUILD_TYPE=Release -G Ninja
-          ninja
+          ninja MK3S_ENGLISH
 
     - name: Upload artifacts
       if: ${{ !github.event.pull_request }}
