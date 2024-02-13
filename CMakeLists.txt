@@ -1,3 +1,5 @@
+add_definitions(-DCOMMUNITY_PREVENT_OOZE)
+
 cmake_minimum_required(VERSION 3.19)
 include(cmake/Utilities.cmake)
 include(cmake/GetGitRevisionDescription.cmake)
