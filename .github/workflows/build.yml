@@ -18,11 +18,12 @@ jobs:
     # setup base required dependencies
     - name: Setup dependencies
       run: |
+          sudo apt-get update
           sudo apt-get install cmake ninja-build python3-pyelftools python3-regex python3-polib
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout ${{ github.event.pull_request.head.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: ${{ github.event.pull_request }}
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -30,7 +31,7 @@ jobs:
         fetch-depth: 0
 
     - name: Checkout ${{ github.event.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: ${{ !github.event.pull_request }}
       with:
         ref: ${{ github.event.ref }}
@@ -38,7 +39,7 @@ jobs:
         fetch-depth: 0
 
     - name: Cache Dependencies
-      uses: actions/cache@v3.0.11
+      uses: actions/cache@v4.0.0
       id: cache-pkgs
       with:
           path: ".dependencies"
@@ -72,11 +73,12 @@ jobs:
     # setup base required dependencies
     - name: Setup dependencies
       run: |
+          sudo apt-get update
           sudo apt-get install gcc-11 g++11 lcov cmake ninja-build python3-pyelftools python3-regex python3-polib
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout ${{ github.event.pull_request.head.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: ${{ github.event.pull_request }}
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -84,7 +86,7 @@ jobs:
         fetch-depth: 0
 
     - name: Checkout ${{ github.event.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: ${{ !github.event.pull_request }}
       with:
         ref: ${{ github.event.ref }}
@@ -92,7 +94,7 @@ jobs:
         fetch-depth: 0
 
     - name: Cache Dependencies
-      uses: actions/cache@v3.0.11
+      uses: actions/cache@v4.0.0
       id: cache-pkgs
       with:
           path: ".dependencies"
@@ -119,11 +121,12 @@ jobs:
     # setup base required dependencies
     - name: Setup dependencies
       run: |
+          sudo apt-get update
           sudo apt-get install gcc-11 g++11 lcov cmake ninja-build python3-pyelftools python3-regex python3-polib
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout ${{ github.event.pull_request.head.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: ${{ github.event.pull_request }}
       with:
         ref: ${{ github.event.pull_request.head.sha }}
@@ -131,7 +134,7 @@ jobs:
         fetch-depth: 0
 
     - name: Checkout ${{ github.event.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: ${{ !github.event.pull_request }}
       with:
         ref: ${{ github.event.ref }}
@@ -139,7 +142,7 @@ jobs:
         fetch-depth: 0
 
     - name: Cache Dependencies
-      uses: actions/cache@v3.0.11
+      uses: actions/cache@v4.0.0
       id: cache-pkgs
       with:
           path: ".dependencies"

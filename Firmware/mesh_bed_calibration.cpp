@@ -373,7 +373,7 @@ BedSkewOffsetDetectionResultType calculate_machine_skew_and_offset_LS(
         angleDiff = fabs(a2 - a1);
         /// XY skew and Y-bed skew
         DBG(_n("Measured skews: %f %f\n"), degrees(a2 - a1), degrees(a2));
-        eeprom_update_float((float *)(EEPROM_XYZ_CAL_SKEW), angleDiff); //storing xyz cal. skew to be able to show in support menu later
+        eeprom_update_float_notify((float *)(EEPROM_XYZ_CAL_SKEW), angleDiff); //storing xyz cal. skew to be able to show in support menu later
         if (angleDiff > bed_skew_angle_mild)
             result = (angleDiff > bed_skew_angle_extreme) ?
                 BED_SKEW_OFFSET_DETECTION_SKEW_EXTREME :
@@ -669,16 +669,16 @@ BedSkewOffsetDetectionResultType calculate_machine_skew_and_offset_LS(
  */
 void reset_bed_offset_and_skew()
 {
-    eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_CENTER+0), 0x0FFFFFFFF);
-    eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_CENTER+4), 0x0FFFFFFFF);
-    eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_X +0), 0x0FFFFFFFF);
-    eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_X +4), 0x0FFFFFFFF);
-    eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_Y +0), 0x0FFFFFFFF);
-    eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_Y +4), 0x0FFFFFFFF);
+    eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_CENTER+0), 0x0FFFFFFFF);
+    eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_CENTER+4), 0x0FFFFFFFF);
+    eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_X +0), 0x0FFFFFFFF);
+    eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_X +4), 0x0FFFFFFFF);
+    eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_Y +0), 0x0FFFFFFFF);
+    eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_VEC_Y +4), 0x0FFFFFFFF);
 
     // Reset the 8 16bit offsets.
     for (int8_t i = 0; i < 4; ++ i)
-        eeprom_update_dword((uint32_t*)(EEPROM_BED_CALIBRATION_Z_JITTER+i*4), 0x0FFFFFFFF);
+        eeprom_update_dword_notify((uint32_t*)(EEPROM_BED_CALIBRATION_Z_JITTER+i*4), 0x0FFFFFFFF);
 }
 
 bool is_bed_z_jitter_data_valid()
@@ -2443,9 +2443,9 @@ BedSkewOffsetDetectionResultType find_bed_offset_and_skew(int8_t verbosity_level
 			world2machine_update(vec_x, vec_y, cntr);
 
 			// Fearlessly store the calibration values into the eeprom.
-			eeprom_update_block(&cntr[0], (float*)(EEPROM_BED_CALIBRATION_CENTER), 8);
-			eeprom_update_block(&vec_x[0], (float*)(EEPROM_BED_CALIBRATION_VEC_X), 8);
-			eeprom_update_block(&vec_y[0], (float*)(EEPROM_BED_CALIBRATION_VEC_Y), 8);
+			eeprom_update_block_notify(&cntr[0], (float*)(EEPROM_BED_CALIBRATION_CENTER), 8);
+			eeprom_update_block_notify(&vec_x[0], (float*)(EEPROM_BED_CALIBRATION_VEC_X), 8);
+			eeprom_update_block_notify(&vec_y[0], (float*)(EEPROM_BED_CALIBRATION_VEC_Y), 8);
 
 			#ifdef SUPPORT_VERBOSITY
 			if (verbosity_level >= 10) {
@@ -2731,9 +2731,9 @@ BedSkewOffsetDetectionResultType improve_bed_offset_and_skew(int8_t method, int8
     world2machine_update(vec_x, vec_y, cntr);
 
     // Fearlessly store the calibration values into the eeprom.
-    eeprom_update_block(&cntr[0], (float*)(EEPROM_BED_CALIBRATION_CENTER), 8);
-    eeprom_update_block(&vec_x[0], (float*)(EEPROM_BED_CALIBRATION_VEC_X), 8);
-    eeprom_update_block(&vec_y[0], (float*)(EEPROM_BED_CALIBRATION_VEC_Y), 8);
+    eeprom_update_block_notify(&cntr[0], (float*)(EEPROM_BED_CALIBRATION_CENTER), 8);
+    eeprom_update_block_notify(&vec_x[0], (float*)(EEPROM_BED_CALIBRATION_VEC_X), 8);
+    eeprom_update_block_notify(&vec_y[0], (float*)(EEPROM_BED_CALIBRATION_VEC_Y), 8);
 
     // Correct the current_position to match the transformed coordinate system after world2machine_rotation_and_skew and world2machine_shift were set.
 	world2machine_update_current();
@@ -2838,6 +2838,10 @@ void go_home_with_z_lift()
 // Returns false if the reference values are more than 3mm far away.
 bool sample_mesh_and_store_reference()
 {
+    bool result = false;
+#ifdef TMC2130
+    tmc2130_home_enter(Z_AXIS_MASK);
+#endif
     bool endstops_enabled  = enable_endstops(false);
     bool endstop_z_enabled = enable_z_endstop(false);
 
@@ -2853,30 +2857,25 @@ bool sample_mesh_and_store_reference()
     // Sample Z heights for the mesh bed leveling.
     // In addition, store the results into an eeprom, to be used later for verification of the bed leveling process.
     {
-        // The first point defines the reference.
+        // Lower Z to the mesh search height with stall detection
+        enable_endstops(true);
         current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
         go_to_current(homing_feedrate[Z_AXIS]/60);
+#ifdef TMC2130
+        check_Z_crash();
+#endif
+        enable_endstops(false);
+
+        // Move XY to first point
         current_position[X_AXIS] = BED_X0;
         current_position[Y_AXIS] = BED_Y0;
         world2machine_clamp(current_position[X_AXIS], current_position[Y_AXIS]);
         go_to_current(homing_feedrate[X_AXIS]/60);
         set_destination_to_current();
-        enable_endstops(true);
         homeaxis(Z_AXIS);
-
-#ifdef TMC2130
-		if (!axis_known_position[Z_AXIS] && (!READ(Z_TMC2130_DIAG))) //Z crash
-		{
-			kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-			return false;
-		}
-#endif //TMC2130
-
-        enable_endstops(false);
 		if (!find_bed_induction_sensor_point_z()) //Z crash or deviation > 50um
 		{
 			kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-			return false;
 		}
         mbl.set_z(0, 0, current_position[Z_AXIS]);
     }
@@ -2902,7 +2901,6 @@ bool sample_mesh_and_store_reference()
 		if (!find_bed_induction_sensor_point_z()) //Z crash or deviation > 50um
 		{
 			kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-			return false;
 		}
         // Get cords of measuring point
        
@@ -2921,7 +2919,7 @@ bool sample_mesh_and_store_reference()
             // The span of the Z offsets is extreme. Give up.
             // Homing failed on some of the points.
             SERIAL_PROTOCOLLNPGM("Exreme span of the Z values!");
-            return false;
+            goto end;
         }
     }
 
@@ -2936,7 +2934,7 @@ bool sample_mesh_and_store_reference()
                     continue;
                 float dif = mbl.z_values[j][i] - mbl.z_values[0][0];
                 int16_t dif_quantized = int16_t(floor(dif * 100.f + 0.5f));
-                eeprom_update_word((uint16_t*)addr, *reinterpret_cast<uint16_t*>(&dif_quantized));
+                eeprom_update_word_notify((uint16_t*)addr, *reinterpret_cast<uint16_t*>(&dif_quantized));
                 #if 0
                 {
                     uint16_t z_offset_u = eeprom_read_word((uint16_t*)addr);
@@ -2961,9 +2959,14 @@ bool sample_mesh_and_store_reference()
 
     go_home_with_z_lift();
 
+    result = true;
+end:
     enable_endstops(endstops_enabled);
     enable_z_endstop(endstop_z_enabled);
-    return true;
+#ifdef TMC2130
+    tmc2130_home_exit();
+#endif
+    return result;
 }
 
 #ifndef NEW_XYZCAL
